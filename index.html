@@ -1598,24 +1598,29 @@ function tryText(ru){
  return v===ru?null:v;
 }
 function translateStatic(root){
- if(isRu()){if(!root)restoreStatic();return;}
+ if(isRu()){if(!root||root===document.body)restoreStatic();return;}
  var scope=root||document.body;
+ if(scope===document.body)restoreStatic();
  var walk=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT,null);
  var nodes=[],n;
  while((n=walk.nextNode()))nodes.push(n);
  nodes.forEach(function(node){
-  var raw=node.nodeValue;
+  if(node.parentElement&&(node.parentElement.closest('#mk-topbar')||node.parentElement.closest('#mk-onboard')||node.parentElement.closest('#mk-faq')||node.parentElement.closest('#mk-lucky')))return;
+  var raw=ORIG.has(node)?ORIG.get(node):node.nodeValue;
   if(!raw||!raw.trim())return;
   var tr=tryText(raw.trim());
-  if(tr!==null)node.nodeValue=raw.replace(raw.trim(),tr);
+  if(tr!==null){
+   if(!ORIG.has(node))ORIG.set(node,raw);
+   node.nodeValue=raw.replace(raw.trim(),tr);
+  }
  });
  var attrs=['placeholder','aria-label','title','data-quick-question'];
  scope.querySelectorAll('input,textarea,[aria-label],[title],[data-quick-question]').forEach(function(el){
   if(el.id&&/^mk-/.test(el.id))return;
+  if(el.closest('#mk-topbar')||el.closest('#mk-onboard')||el.closest('#mk-faq')||el.closest('#mk-lucky'))return;
   attrs.forEach(function(a){
-   var cur=el.getAttribute(a);
+   var cur=el.getAttribute('data-mkru-'+a)||el.getAttribute(a);
    if(!cur)return;
-   if(el.getAttribute('data-mkru-'+a))cur=el.getAttribute('data-mkru-'+a);
    if(!LANG_RE.test(cur))return;
    var tr=tryText(cur);
    if(tr===null)return;
